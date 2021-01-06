@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type HTTPClient interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
 type DigestRequest struct {
 	Body       string
 	Method     string
@@ -18,13 +22,13 @@ type DigestRequest struct {
 	Auth       *authorization
 	Wa         *wwwAuthenticate
 	CertVal    bool
-	HTTPClient *http.Client
+	HTTPClient HTTPClient
 }
 
 type DigestTransport struct {
 	Password   string
 	Username   string
-	HTTPClient *http.Client
+	HTTPClient HTTPClient
 }
 
 // NewRequest creates a new DigestRequest object
@@ -43,7 +47,7 @@ func NewTransport(username, password string) DigestTransport {
 	return dt
 }
 
-func (dr *DigestRequest) getHTTPClient() *http.Client {
+func (dr *DigestRequest) getHTTPClient() HTTPClient {
 	if dr.HTTPClient != nil {
 		return dr.HTTPClient
 	}
@@ -93,6 +97,11 @@ func (dt *DigestTransport) RoundTrip(req *http.Request) (resp *http.Response, er
 	dr.Header = req.Header
 
 	return dr.Execute()
+}
+
+// Do implements the http.HTTPClient interface
+func (dt *DigestTransport) Do(req *http.Request) (resp *http.Response, err error) {
+	return dt.RoundTrip(req)
 }
 
 // Execute initialise the request and get a response
